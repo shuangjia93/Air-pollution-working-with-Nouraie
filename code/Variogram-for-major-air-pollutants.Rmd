@@ -1,0 +1,386 @@
+---
+title: "Variogram for major air pollutants and kriging estimation"
+author: "Shuangjia (Nicole) Xue"
+date: "2022-11-12"
+output: 
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    number_sections: yes
+  html_document: 
+    toc: yes
+    toc_float: yes
+    number_sections: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE, warning=FALSE, echo=F}
+library(sp)
+library(bookdown)
+library(gridExtra)
+library(gstat)
+library(stringr)
+library(plyr)
+library(gstat)
+library(zipcodeR)
+library(ggplot2)
+library(maptools)
+library(scales) 
+library(magrittr)
+```
+
+### reference https://rpubs.com/nabilabd/118172
+
+
+### input data
+```{r}
+setwd('C:/Air pollution/Air-pollution-working-with-Nouraie/data')
+
+PM2.5 <- read.csv("PM2.5_monthly_2000_2022.csv")
+PM10 <- read.csv("PM10_monthly_2000_2022.csv")
+O3 <- read.csv("O3_monthly_2000_2022.csv")
+CO <- read.csv("CO_monthly_2000_2022.csv")
+SO2 <- read.csv("SO2_monthly_2000_2022.csv")
+NO2 <- read.csv("NO2_monthly_2000_2022.csv")
+```
+
+
+### build coordinates
+```{r}
+#PM2.5
+PM2.5$long <- str_split_fixed(PM2.5$monitor_id,',', 2)[,2] %>% as.numeric()
+PM2.5$lat <- str_split_fixed(PM2.5$monitor_id,',', 2)[,1] %>% as.numeric()
+coordinates(PM2.5) <- ~ long + lat
+
+#PM10
+PM10$long <- str_split_fixed(PM10$monitor_id,',', 2)[,2] %>% as.numeric()
+PM10$lat <- str_split_fixed(PM10$monitor_id,',', 2)[,1] %>% as.numeric()
+coordinates(PM10) <- ~ long + lat
+
+#SO2
+SO2$long <- str_split_fixed(SO2$monitor_id,',', 2)[,2] %>% as.numeric()
+SO2$lat <- str_split_fixed(SO2$monitor_id,',', 2)[,1] %>% as.numeric()
+coordinates(SO2) <- ~ long + lat
+
+#CO
+CO$long <- str_split_fixed(CO$monitor_id,',', 2)[,2] %>% as.numeric()
+CO$lat <- str_split_fixed(CO$monitor_id,',', 2)[,1] %>% as.numeric()
+coordinates(CO) <- ~ long + lat
+
+#NO2
+NO2$long <- str_split_fixed(NO2$monitor_id,',', 2)[,2] %>% as.numeric()
+NO2$lat <- str_split_fixed(NO2$monitor_id,',', 2)[,1] %>% as.numeric()
+coordinates(NO2) <- ~ long + lat
+
+#O3
+O3$long <- str_split_fixed(O3$monitor_id,',', 2)[,2] %>% as.numeric()
+O3$lat <- str_split_fixed(O3$monitor_id,',', 2)[,1] %>% as.numeric()
+coordinates(O3) <- ~ long + lat
+
+```
+
+# monitor locations
+```{r}
+P1<-plot(PM2.5)
+P2<-plot(PM10)
+P3<-plot(SO2)
+P4<-plot(CO)
+P5<-plot(NO2)
+P6<-plot(O3)
+
+grid.arrange(P1,P2,P3,P4,P5,P6, ncol = 2)
+
+```
+
+# plot with exposure level for Jan 2000
+```{r}
+p1<-PM2.5 %>% as.data.frame %>% 
+  ggplot(aes(long, lat)) + geom_point(aes(size = X2000.1), color="blue", alpha=3/4) +  coord_equal() + theme_bw()
+
+p2<-PM10 %>% as.data.frame %>% 
+  ggplot(aes(long, lat)) + geom_point(aes(size = X2000.1), color="blue", alpha=3/4) +  coord_equal() + theme_bw()
+
+p3<-SO2 %>% as.data.frame %>% 
+  ggplot(aes(long, lat)) + geom_point(aes(size = X2000.1), color="blue", alpha=3/4) +  coord_equal() + theme_bw()
+
+p4<-CO %>% as.data.frame %>% 
+  ggplot(aes(long, lat)) + geom_point(aes(size = X2000.1), color="blue", alpha=3/4) +  coord_equal() + theme_bw()
+
+p5<-NO2 %>% as.data.frame %>% 
+  ggplot(aes(long, lat)) + geom_point(aes(size = X2000.1), color="blue", alpha=3/4) +  coord_equal() + theme_bw()
+
+p6<-O3 %>% as.data.frame %>% 
+  ggplot(aes(long, lat)) + geom_point(aes(size = X2000.1), color="blue", alpha=3/4) +  coord_equal() + theme_bw()
+
+grid.arrange(p1,p2,p3,p4,p5,p6, ncol = 2)
+
+```
+
+# variogram for PM2.5 in Jan 2000
+
+```{r}
+
+PM2.5_NAomit <- PM2.5[which(PM2.5$X2000.1 != 'NA'),] # remove NA
+pm.vgm.pm2.5 <- variogram(X2000.1~1, data = PM2.5_NAomit) # calculates sample variogram values 
+pm.fit.pm2.5 <- fit.variogram(pm.vgm.pm2.5, vgm(1,"Gau",100,1)) # fit model
+
+plot(pm.vgm.pm2.5, pm.fit.pm2.5)
+
+```
+
+
+# PM10
+```{r}
+
+PM10_NAomit <- PM10[which(PM10$X2000.1 != 'NA'),] # remove NA
+pm.vgm.pm10 <- variogram(X2000.1~1, data = PM10_NAomit) # calculates sample variogram values 
+pm.fit.pm10 <- fit.variogram(pm.vgm.pm10, vgm(1,"Gau",100,1)) # fit model
+
+plot(pm.vgm.pm10, pm.fit.pm10)
+
+```
+
+#SO2
+
+```{r}
+
+SO2_NAomit <- SO2[which(SO2$X2000.1 != 'NA'),] # remove NA
+TheVariogram.SO2 <- variogram(X2000.1~1, data=SO2_NAomit) # calculates sample variogram values 
+TheVariogramModel.SO2 <- vgm(psill=0.15, model="Gau", nugget=0.0001, range=5)
+FittedModel.SO2 <- fit.variogram(TheVariogram.SO2, model=TheVariogramModel.SO2)    
+plot(TheVariogram.SO2, model=FittedModel.SO2)
+
+```
+
+#CO
+
+```{r}
+
+CO_NAomit <- CO[which(CO$X2000.1 != 'NA'),] # remove NA
+TheVariogram.CO <- variogram(X2000.1~1, data=CO_NAomit) # calculates sample variogram values 
+TheVariogramModel.CO <- vgm(psill=0.15, model="Gau", nugget=0.0001, range=5)
+FittedModel.CO <- fit.variogram(TheVariogram.CO, model=TheVariogramModel.CO)    
+plot(TheVariogram.CO, model=FittedModel.CO)
+
+```
+
+#NO2
+
+```{r}
+
+NO2_NAomit <- NO2[which(NO2$X2000.1 != 'NA'),] # remove NA
+TheVariogram.NO2 <- variogram(X2000.1~1, data=NO2_NAomit) # calculates sample variogram values 
+TheVariogramModel.NO2 <- vgm(psill=0.15, model="Gau", nugget=0.0001, range=5)
+FittedModel.NO2 <- fit.variogram(TheVariogram.NO2, model=TheVariogramModel.NO2)    
+plot(TheVariogram.NO2, model=FittedModel.NO2)
+
+```
+
+#O3
+
+```{r}
+
+O3_NAomit <- O3[which(O3$X2000.1 != 'NA'),] # remove NA
+TheVariogram.O3 <- variogram(X2000.1~1, data=O3_NAomit) # calculates sample variogram values 
+TheVariogramModel.O3 <- vgm(psill=0.15, model="Gau", nugget=0.0001, range=5)
+FittedModel.O3 <- fit.variogram(TheVariogram.O3, model=TheVariogramModel.O3)    
+plot(TheVariogram.O3, model=FittedModel.O3)
+
+```
+
+
+
+# ten zip code from Allegeny County
+```{r, message=FALSE, warning=FALSE, echo=F}
+zipcodes <- c('15213','15049','15122','15102','15203','15014',
+              '15024','15104','15129','15006')
+```
+
+
+# find longitude and latitude for each zip code using zipcodeR
+```{r, message=FALSE, warning=FALSE, echo=F}
+n <- length(zipcodes)
+coord <- data.frame()
+for (i in 1:n) {
+  coord <- rbind(coord, geocode_zip(zipcodes[i]))
+}
+coord
+unknowndt <- coord[,-1]
+head(unknowndt)
+coordinates(unknowndt)  <- ~ lng + lat
+```
+
+# using Kriging to estimate exposure level for each patients and loop through all the months
+
+## input the data again to remove coordinates
+```{r,warning=FALSE}
+setwd('C:/Air pollution/Air-pollution-working-with-Nouraie/data')
+PM2.5 <- read.csv("PM2.5_monthly_2000_2022.csv")
+PM10 <- read.csv("PM10_monthly_2000_2022.csv")
+O3 <- read.csv("O3_monthly_2000_2022.csv")
+CO <- read.csv("CO_monthly_2000_2022.csv")
+SO2 <- read.csv("SO2_monthly_2000_2022.csv")
+NO2 <- read.csv("NO2_monthly_2000_2022.csv")
+```
+
+
+# PM2.5
+```{r, message=FALSE, warning=FALSE, echo=F}
+# PM2.5
+PM2.5_Krig <- data.frame(zipcodes) # can change to subject IDs 
+
+long <- str_split_fixed(PM2.5$monitor_id,',', 2)[,2] %>% as.numeric()
+lat <- str_split_fixed(PM2.5$monitor_id,',', 2)[,1] %>% as.numeric()
+
+
+
+for (i in 2:ncol(PM2.5)) {
+  date <- colnames(PM2.5)[i]
+  PM2.5_tmp <- PM2.5[,i]
+  knowndt_tmp <- data.frame(lat,long,PM2.5_tmp)
+  coordinates(knowndt_tmp)  <- ~ long + lat
+  known_na_omit <- knowndt_tmp[!is.na(knowndt_tmp$PM2.5_tmp),]
+  pm2.5.kriged <-krige(PM2.5_tmp ~ 1, known_na_omit, unknowndt, model = pm.fit.pm2.5, maxdist=10, nmax=50)
+  PM2.5_Krig[,i] <- pm2.5.kriged$var1.pred
+  colnames(PM2.5_Krig)[i] <- date
+  
+} 
+
+PM2.5_Krig[1:6,1:6]
+```
+
+
+
+
+# PM10
+```{r, message=FALSE, warning=FALSE, echo=F}
+PM10_Krig <- data.frame(zipcodes) # can change to subject IDs 
+
+long <- str_split_fixed(PM10$monitor_id,',', 2)[,2] %>% as.numeric()
+lat <- str_split_fixed(PM10$monitor_id,',', 2)[,1] %>% as.numeric()
+
+
+
+for (i in 2:ncol(PM10)) {
+  date <- colnames(PM10)[i]
+  PM10_tmp <- PM10[,i]
+  knowndt_tmp <- data.frame(lat,long,PM10_tmp)
+  coordinates(knowndt_tmp)  <- ~ long + lat
+  known_na_omit <- knowndt_tmp[!is.na(knowndt_tmp$PM10_tmp),]
+  PM10.kriged <-krige(PM10_tmp ~ 1, known_na_omit, unknowndt, model = pm.fit.pm10, maxdist=10, nmax=50)
+  PM10_Krig[,i] <- PM10.kriged$var1.pred
+  colnames(PM10_Krig)[i] <- date
+  
+} 
+
+PM10_Krig[1:6,1:6]
+```
+
+
+
+
+# SO2
+```{r, message=FALSE, warning=FALSE, echo=F}
+SO2_Krig <- data.frame(zipcodes) # can change to subject IDs 
+
+long <- str_split_fixed(SO2$monitor_id,',', 2)[,2] %>% as.numeric()
+lat <- str_split_fixed(SO2$monitor_id,',', 2)[,1] %>% as.numeric()
+
+
+
+for (i in 2:ncol(SO2)) {
+  date <- colnames(SO2)[i]
+  SO2_tmp <- SO2[,i]
+  knowndt_tmp <- data.frame(lat,long,SO2_tmp)
+  coordinates(knowndt_tmp)  <- ~ long + lat
+  known_na_omit <- knowndt_tmp[!is.na(knowndt_tmp$SO2_tmp),]
+  SO2.kriged <-krige(SO2_tmp ~ 1, known_na_omit, unknowndt, model = FittedModel.SO2, maxdist=10, nmax=50)
+  SO2_Krig[,i] <- SO2.kriged$var1.pred
+  colnames(SO2_Krig)[i] <- date
+  
+} 
+
+SO2_Krig[1:6,1:6]
+```
+
+
+
+
+# CO
+```{r, message=FALSE, warning=FALSE, echo=F}
+CO_Krig <- data.frame(zipcodes) # can change to subject IDs 
+
+long <- str_split_fixed(CO$monitor_id,',', 2)[,2] %>% as.numeric()
+lat <- str_split_fixed(CO$monitor_id,',', 2)[,1] %>% as.numeric()
+
+
+
+for (i in 2:ncol(CO)) {
+  date <- colnames(CO)[i]
+  CO_tmp <- CO[,i]
+  knowndt_tmp <- data.frame(lat,long,CO_tmp)
+  coordinates(knowndt_tmp)  <- ~ long + lat
+  known_na_omit <- knowndt_tmp[!is.na(knowndt_tmp$CO_tmp),]
+  CO.kriged <-krige(CO_tmp ~ 1, known_na_omit, unknowndt, model = FittedModel.CO, maxdist=10, nmax=50)
+  CO_Krig[,i] <- CO.kriged$var1.pred
+  colnames(CO_Krig)[i] <- date
+  
+} 
+
+CO_Krig[1:6,1:6]
+```
+
+
+# NO2
+```{r, message=FALSE, warning=FALSE, echo=F}
+NO2_Krig <- data.frame(zipcodes) # can change to subject IDs 
+
+long <- str_split_fixed(NO2$monitor_id,',', 2)[,2] %>% as.numeric()
+lat <- str_split_fixed(NO2$monitor_id,',', 2)[,1] %>% as.numeric()
+
+
+
+for (i in 2:ncol(NO2)) {
+  date <- colnames(NO2)[i]
+  NO2_tmp <- NO2[,i]
+  knowndt_tmp <- data.frame(lat,long,NO2_tmp)
+  coordinates(knowndt_tmp)  <- ~ long + lat
+  known_na_omit <- knowndt_tmp[!is.na(knowndt_tmp$NO2_tmp),]
+  NO2.kriged <-krige(NO2_tmp ~ 1, known_na_omit, unknowndt, model = FittedModel.NO2, maxdist=10, nmax=50)
+  NO2_Krig[,i] <- NO2.kriged$var1.pred
+  colnames(NO2_Krig)[i] <- date
+  
+} 
+
+NO2_Krig[1:6,1:6]
+```
+
+
+
+
+# O3
+```{r, message=FALSE, warning=FALSE, echo=F}
+O3_Krig <- data.frame(zipcodes) # can change to subject IDs 
+
+long <- str_split_fixed(O3$monitor_id,',', 2)[,2] %>% as.numeric()
+lat <- str_split_fixed(O3$monitor_id,',', 2)[,1] %>% as.numeric()
+
+
+
+for (i in 2:ncol(O3)) {
+  date <- colnames(O3)[i]
+  O3_tmp <- O3[,i]
+  knowndt_tmp <- data.frame(lat,long,O3_tmp)
+  coordinates(knowndt_tmp)  <- ~ long + lat
+  known_na_omit <- knowndt_tmp[!is.na(knowndt_tmp$O3_tmp),]
+  O3.kriged <-krige(O3_tmp ~ 1, known_na_omit, unknowndt, model = FittedModel.O3, maxdist=10, nmax=50)
+  O3_Krig[,i] <- O3.kriged$var1.pred
+  colnames(O3_Krig)[i] <- date
+  
+} 
+
+O3_Krig[1:6,1:6]
+```

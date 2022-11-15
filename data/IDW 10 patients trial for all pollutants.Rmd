@@ -1,0 +1,214 @@
+---
+title: "IDW 10 patients trial for all pollutants"
+author: "Shuangjia (Nicole) Xue"
+date: "2022-11-15"
+output: 
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    number_sections: yes
+  html_document: 
+    toc: yes
+    toc_float: yes
+    number_sections: yes
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE, warning=FALSE, echo=F}
+library(here)
+library(sp)
+library(gstat)
+library(stringr)
+library(ggmap)
+library(plyr)
+library(zipcodeR)
+```
+
+# ten zip code from Allegeny County
+```{r, message=FALSE, warning=FALSE, echo=F}
+zipcodes <- c('15213','15049','15122','15102','15203','15014',
+              '15024','15104','15129','15006')
+```
+
+
+# find longitude and latitude for each zip code using zipcodeR
+```{r, message=FALSE, warning=FALSE, echo=F}
+n <- length(zipcodes)
+coord <- data.frame()
+for (i in 1:n) {
+  coord <- rbind(coord, geocode_zip(zipcodes[i]))
+}
+coord
+unknowndt <- coord[,-1]
+head(unknowndt)
+coordinates(unknowndt)  <- ~ lng + lat
+```
+
+### input air pollution data
+```{r}
+setwd('C:/Air pollution/Air-pollution-working-with-Nouraie/data')
+
+PM2.5 <- read.csv("PM2.5_monthly_2000_2022.csv")
+PM10 <- read.csv("PM10_monthly_2000_2022.csv")
+O3 <- read.csv("O3_monthly_2000_2022.csv")
+CO <- read.csv("CO_monthly_2000_2022.csv")
+SO2 <- read.csv("SO2_monthly_2000_2022.csv")
+NO2 <- read.csv("NO2_monthly_2000_2022.csv")
+```
+
+
+# IDW for PM2.5 and loop through the months
+```{r, message=FALSE, warning=FALSE, echo=F}
+long <- str_split_fixed(PM2.5$monitor_id,',', 2)[,2] %>% as.numeric()
+lat <- str_split_fixed(PM2.5$monitor_id,',', 2)[,1] %>% as.numeric()
+
+summary_PM2.5 <- data.frame(1:10)
+
+for (i in 2:ncol(PM2.5)) {
+  date <- colnames(PM2.5)[i]
+  PM2.5_tmp <- PM2.5[,i]
+  knowndt_tmp <- data.frame(lat,long,PM2.5_tmp)
+  coordinates(knowndt_tmp)  <- ~ long + lat
+  known_na_omit <- knowndt_tmp[!is.na(knowndt_tmp$PM2.5_tmp),]
+  idwmodel1 = idw(PM2.5_tmp ~1, known_na_omit,unknowndt,
+                  maxdist = Inf)
+  summary_PM2.5[,i] <- idwmodel1$var1.pred
+  colnames(summary_PM2.5)[i] <- date
+  
+} 
+head(summary_PM2.5)
+```
+
+
+
+
+PM10
+```{r, message=FALSE, warning=FALSE, echo=F}
+
+long <- str_split_fixed(PM10$monitor_id,',', 2)[,2] %>% as.numeric()
+lat <- str_split_fixed(PM10$monitor_id,',', 2)[,1] %>% as.numeric()
+
+summary_PM10 <- data.frame(1:10)
+
+for (i in 2:ncol(PM10)) {
+  date <- colnames(PM10)[i]
+  PM10_tmp <- PM10[,i]
+  knowndt_tmp <- data.frame(lat,long,PM10_tmp)
+  coordinates(knowndt_tmp)  <- ~ long + lat
+  known_na_omit <- knowndt_tmp[!is.na(knowndt_tmp$PM10_tmp),]
+  idwmodel1 = idw(PM10_tmp ~1, known_na_omit,unknowndt,
+                  maxdist = Inf)
+  summary_PM10[,i] <- idwmodel1$var1.pred
+  colnames(summary_PM10)[i] <- date
+  
+} 
+head(summary_PM10)
+```
+
+
+
+
+# SO2
+```{r, message=FALSE, warning=FALSE, echo=F}
+long <- str_split_fixed(SO2$monitor_id,',', 2)[,2] %>% as.numeric()
+lat <- str_split_fixed(SO2$monitor_id,',', 2)[,1] %>% as.numeric()
+
+summary_SO2 <- data.frame(1:10)
+
+for (i in 2:ncol(SO2)) {
+  date <- colnames(SO2)[i]
+  SO2_tmp <- SO2[,i]
+  knowndt_tmp <- data.frame(lat,long,SO2_tmp)
+  coordinates(knowndt_tmp)  <- ~ long + lat
+  known_na_omit <- knowndt_tmp[!is.na(knowndt_tmp$SO2_tmp),]
+  idwmodel1 = idw(SO2_tmp ~1, known_na_omit,unknowndt,
+                  maxdist = Inf)
+  summary_SO2[,i] <- idwmodel1$var1.pred
+  colnames(summary_SO2)[i] <- date
+  
+} 
+head(summary_SO2)
+
+```
+
+
+
+# CO
+
+```{r, message=FALSE, warning=FALSE, echo=F}
+
+long <- str_split_fixed(CO$monitor_id,',', 2)[,2] %>% as.numeric()
+lat <- str_split_fixed(CO$monitor_id,',', 2)[,1] %>% as.numeric()
+
+summary_CO <- data.frame(1:10)
+
+for (i in 2:ncol(CO)) {
+  date <- colnames(CO)[i]
+  CO_tmp <- CO[,i]
+  knowndt_tmp <- data.frame(lat,long,CO_tmp)
+  coordinates(knowndt_tmp)  <- ~ long + lat
+  known_na_omit <- knowndt_tmp[!is.na(knowndt_tmp$CO_tmp),]
+  idwmodel1 = idw(CO_tmp ~1, known_na_omit,unknowndt,
+                  maxdist = Inf)
+  summary_CO[,i] <- idwmodel1$var1.pred
+  colnames(summary_CO)[i] <- date
+  
+} 
+head(summary_CO)
+```
+
+
+#NO2
+
+```{r, message=FALSE, warning=FALSE, echo=F}
+long <- str_split_fixed(NO2$monitor_id,',', 2)[,2] %>% as.numeric()
+lat <- str_split_fixed(NO2$monitor_id,',', 2)[,1] %>% as.numeric()
+
+summary_NO2 <- data.frame(1:10)
+
+for (i in 2:ncol(NO2)) {
+  date <- colnames(NO2)[i]
+  NO2_tmp <- NO2[,i]
+  knowndt_tmp <- data.frame(lat,long,NO2_tmp)
+  coordinates(knowndt_tmp)  <- ~ long + lat
+  known_na_omit <- knowndt_tmp[!is.na(knowndt_tmp$NO2_tmp),]
+  idwmodel1 = idw(NO2_tmp ~1, known_na_omit,unknowndt,
+                  maxdist = Inf)
+  summary_NO2[,i] <- idwmodel1$var1.pred
+  colnames(summary_NO2)[i] <- date
+  
+} 
+head(summary_NO2)
+
+```
+
+
+
+#O3
+
+```{r, message=FALSE, warning=FALSE, echo=F}
+long <- str_split_fixed(O3$monitor_id,',', 2)[,2] %>% as.numeric()
+lat <- str_split_fixed(O3$monitor_id,',', 2)[,1] %>% as.numeric()
+
+summary_O3 <- data.frame(1:10)
+
+for (i in 2:ncol(O3)) {
+  date <- colnames(O3)[i]
+  O3_tmp <- O3[,i]
+  knowndt_tmp <- data.frame(lat,long,O3_tmp)
+  coordinates(knowndt_tmp)  <- ~ long + lat
+  known_na_omit <- knowndt_tmp[!is.na(knowndt_tmp$O3_tmp),]
+  idwmodel1 = idw(O3_tmp ~1, known_na_omit,unknowndt,
+                  maxdist = Inf)
+  summary_O3[,i] <- idwmodel1$var1.pred
+  colnames(summary_O3)[i] <- date
+  
+} 
+head(summary_O3)
+
+```
